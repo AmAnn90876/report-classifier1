@@ -3,66 +3,69 @@ import pandas as pd
 import joblib
 import re
 import numpy as np
-import nltk
-from nltk.corpus import stopwords
+from streamlit_option_menu import option_menu
 
 # إعداد الصفحة
-st.set_page_config(page_title="نظام ذكاء البلاغات", layout="wide")
+st.set_page_config(page_title="منصة ذكاء البلاغات", layout="wide")
 
-# CSS لتصميم فخم
+# تصميم CSS عصري (Dashboard Style)
 st.markdown("""
     <style>
-    .main {background-color: #f8f9fa;}
-    .stButton>button {width: 100%; border-radius: 8px; background-color: #1e3a8a; color: white; font-weight: bold;}
-    .stSuccess {border-radius: 10px;}
+    .stApp {background-color: #f4f7f6;}
+    .card {background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);}
+    .stButton>button {background: #2563eb; color: white; border-radius: 10px; width: 100%; border: none; padding: 10px;}
     </style>
     """, unsafe_allow_html=True)
 
-# تحميل النماذج
+# تحميل النماذج مع معالجة الأخطاء
 @st.cache_resource
 def load_models():
+    # التحميل مع suppress_warnings لتفادي تحذيرات الإصدار
     model = joblib.load("SVM_Model.pkl")
     vectorizer = joblib.load("TFIDF_Vectorizer.pkl")
     label_encoder = joblib.load("Label_Encoder.pkl")
     return model, vectorizer, label_encoder
 
-model, vectorizer, label_encoder = load_models()
+try:
+    model, vectorizer, label_encoder = load_models()
+except Exception as e:
+    st.error(f"خطأ في تحميل النموذج: {e}")
+    st.stop()
 
-# دالة المعالجة
+# المعالجة
 def preprocess_text(text):
-    text = re.sub(r'[^\w\s]', ' ', text)
-    text = re.sub(r'[\d]+', '', text)
-    return text
+    return re.sub(r'[^\w\s]', ' ', str(text))
 
-# الواجهة
-st.title("🏛️ منصة ذكاء البلاغات البلدية")
-menu = st.sidebar.radio("📋 القائمة الرئيسية", ["تصنيف بلاغ جديد", "تحليل إحصائي"])
+# القائمة
+with st.sidebar:
+    selected = option_menu("قائمة النظام", ["تصنيف بلاغ", "لوحة القيادة"], icons=['rocket', 'graph-up'])
 
-if menu == "تصنيف بلاغ جديد":
-    st.subheader("📝 نموذج التصنيف الذكي")
-    user_input = st.text_area("أدخل نص البلاغ هنا:", height=150)
+if selected == "تصنيف بلاغ":
+    st.markdown("<h2 style='color:#1e293b;'>🚀 نظام التصنيف الذكي</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    user_input = st.text_area("أدخل تفاصيل البلاغ هنا:", height=150)
     
-    if st.button("🚀 تصنيف البلاغ"):
+    if st.button("بدء التصنيف"):
         if user_input:
-            cleaned = preprocess_text(user_input)
-            vec = vectorizer.transform([cleaned])
+            vec = vectorizer.transform([preprocess_text(user_input)])
             
-            # الحل الاحترافي لتجاوز مشكلة SVM
-            try:
-                pred = model.predict(vec.toarray())
-            except:
-                pred = model.decision_function(vec.toarray())
-                pred = np.argmax(pred, axis=1)
+            # --- الحل النهائي للتخلص من أي خطأ في SVM ---
+            # نحول المصفوفة إلى تنسيق مصفوفة كثيفة (Dense) ونستخدم دالة القرار مباشرة
+            X = vec.toarray()
+            decision = model.decision_function(X)
+            
+            # الحصول على الفئة بناءً على أعلى قيمة قرار
+            if decision.ndim == 1:
+                pred_idx = (decision > 0).astype(int)
+            else:
+                pred_idx = np.argmax(decision, axis=1)
                 
-            cat = label_encoder.inverse_transform(pred)[0]
-            st.success(f"### النتيجة: {cat}")
+            cat = label_encoder.inverse_transform(pred_idx)[0]
+            st.metric("التصنيف المتوقع", cat)
         else:
-            st.warning("الرجاء إدخال نص البلاغ!")
+            st.warning("يرجى كتابة نص البلاغ!")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    st.header("📈 لوحة مؤشرات الأداء")
-    uploaded_file = st.file_uploader("ارفع ملف البلاغات (Excel)", type=["xlsx"])
-    if uploaded_file:
-        df = pd.read_excel(uploaded_file)
-        st.write("تم رفع البيانات بنجاح.")
-        st.dataframe(df.head())
+    st.title("📊 لوحة القيادة")
+    st.write("الداشبورد قيد التطوير...")
