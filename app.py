@@ -4,61 +4,52 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
 from streamlit_option_menu import option_menu
+import plotly.express as px
 
-# إعداد الصفحة
-st.set_page_config(page_title="منصة بلاغات ذكية", layout="wide", page_icon="🚀")
+st.set_page_config(page_title="GHARS - منصة ذكية", layout="wide")
 
-# تصميم CSS لعرض "كرتيف" وعصري
-st.markdown("""
-    <style>
-    .stApp {background-color: #f0f2f6;}
-    .css-1r6slp0 {padding: 2rem 1rem;}
-    .block-container {background-color: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);}
-    .stButton>button {width: 100%; border-radius: 10px; height: 3em; background: #2563eb; color: white; font-weight: bold;}
-    </style>
-    """, unsafe_allow_html=True)
+# 1. ذاكرة التطبيق (لحفظ البلاغات)
+if 'reports' not in st.session_state:
+    st.session_state.reports = pd.DataFrame(columns=['القسم', 'التفاصيل'])
 
-# 1. تدريب النموذج الذكي (الخلفية)
-data = {
-    "text": ["نظافة", "نفايات", "زبالة", "قمامة", "روائح", "مياه", "تسريب", "ماسورة", "انفجار", "إنارة", "لمبة", "ظلام", "طرق", "حفرة", "أسفلت", "مطبات"],
-    "label": ["نظافة", "نظافة", "نظافة", "نظافة", "نظافة", "مياه", "مياه", "مياه", "مياه", "إنارة", "إنارة", "إنارة", "طرق", "طرق", "طرق", "طرق"]
-}
+# 2. النموذج الذكي
+training_data = [
+    ("نفايات متراكمة حاويات زبالة روائح مخلفات تنظيف", "نظافة"),
+    ("تسرب مياه كسر ماسورة انفجار تجمع مياه طفح", "مياه"),
+    ("الإنارة معطلة الشارع مظلم عمود النور طافي ظلام", "إنارة"),
+    ("حفرة طريق هبوط أسفلت تشققات رصيف مطبات", "طرق")
+]
+df = pd.DataFrame(training_data, columns=['text', 'label'])
 model = Pipeline([('tfidf', TfidfVectorizer()), ('clf', LinearSVC())])
-model.fit(data['text'], data['label'])
+model.fit(df['text'], df['label'])
 
-# 2. القائمة الجانبية (شكل عصري)
-with st.sidebar:
-    selected = option_menu("القائمة الرئيسية", ["إرسال بلاغ", "إحصائيات"], icons=['pencil-square', 'bar-chart'], menu_icon="cast")
+# 3. القائمة
+selected = option_menu(None, ["إرسال بلاغ", "لوحة الإحصائيات"], icons=['pencil', 'bar-chart'], orientation="horizontal")
 
-# 3. واجهة إرسال البلاغ
 if selected == "إرسال بلاغ":
-    st.markdown("## 📋 تقديم بلاغ جديد")
-    st.write("الرجاء اختيار القسم وتعبئة التفاصيل أدناه:")
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        # اختيار القسم (محاكاة لاقتراح المستخدم)
-        category_choice = st.selectbox("اقتراح صنف البلاغ:", ["نظافة", "مياه", "إنارة", "طرق"])
-    
-    with col2:
-        user_input = st.text_area("تفاصيل البلاغ:", height=100, placeholder="مثال: هناك تسريب مياه في شارع...")
-    
-    if st.button("🚀 تحليل وإرسال البلاغ"):
+    st.header("📋 تقديم بلاغ جديد")
+    user_input = st.text_area("تفاصيل البلاغ:", height=100)
+    if st.button("🚀 تصنيف وإرسال"):
         if user_input:
-            prediction = model.predict([user_input])[0]
-            st.success(f"### تم التحليل بنجاح!")
-            st.info(f"القسم المقترح من النظام: **{prediction}**")
-            st.write(f"ملاحظة: لقد قمت باقتراح قسم: **{category_choice}**")
+            pred = model.predict([user_input])[0]
+            # حفظ البلاغ في الذاكرة
+            new_report = pd.DataFrame({'القسم': [pred], 'التفاصيل': [user_input]})
+            st.session_state.reports = pd.concat([st.session_state.reports, new_report], ignore_index=True)
+            st.success(f"تم تصنيف البلاغ كـ: {pred}")
         else:
-            st.warning("يرجى كتابة نص البلاغ!")
+            st.warning("يرجى كتابة نص البلاغ")
 
-else:
-    st.title("📊 لوحة الإحصائيات")
-    st.write("هنا ستظهر إحصائيات البلاغات الواردة (قيد التطوير).")
-
-# كود إضافي لقياس "مستوى الأولوية"
-if "خطر" in user_input or "عاجل" in user_input or "انهيار" in user_input:
-    st.error("🚨 تصنيف أولوية: طارئ (يجب معالجته فوراً)")
-else:
-    st.success("✅ تصنيف أولوية: عادي (مجدول)")
+elif selected == "لوحة الإحصائيات":
+    st.header("📊 لوحة مؤشرات الأداء")
+    if not st.session_state.reports.empty:
+        # حساب الإحصائيات
+        stats = st.session_state.reports['القسم'].value_counts().reset_index()
+        stats.columns = ['القسم', 'العدد']
+        
+        # عرض الرسم البياني
+        fig = px.pie(stats, values='العدد', names='القسم', title="توزيع البلاغات حسب القسم")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.table(st.session_state.reports)
+    else:
+        st.info("لا توجد بلاغات حالياً، أرسلي بلاغاً لتظهر الإحصائيات.")
