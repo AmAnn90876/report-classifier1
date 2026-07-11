@@ -1,8 +1,67 @@
-streamlit
-streamlit-option-menu
-pandas
-joblib
-scikit-learn
-nltk
-matplotlib
-seaborn
+import streamlit as st
+import pandas as pd
+import joblib
+import re
+import numpy as np
+import os
+import plotly.express as px
+from streamlit_option_menu import option_menu
+
+# إعداد الصفحة
+st.set_page_config(page_title="منصة ذكاء البلاغات", layout="wide", page_icon="🏛️")
+
+# تصميم CSS فخم (Modern Dashboard UI)
+st.markdown("""
+    <style>
+    .main {background-color: #f8fafc;}
+    .css-1d391kg {background-color: #ffffff; padding: 20px; border-radius: 20px;}
+    .stButton>button {width: 100%; border-radius: 12px; background: linear-gradient(90deg, #4f46e5, #3b82f6); color: white; border: none; font-weight: bold; padding: 10px;}
+    .metric-card {background: #ffffff; padding: 20px; border-radius: 15px; border-left: 5px solid #4f46e5; box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
+    </style>
+    """, unsafe_allow_html=True)
+
+# تحميل النماذج
+@st.cache_resource
+def load_models():
+    base_path = os.path.dirname(__file__)
+    model = joblib.load(os.path.join(base_path, "SVM_Model (2).pkl"))
+    vectorizer = joblib.load(os.path.join(base_path, "TFIDF_Vectorizer.pkl"))
+    label_encoder = joblib.load(os.path.join(base_path, "Label_Encoder.pkl"))
+    return model, vectorizer, label_encoder
+
+model, vectorizer, label_encoder = load_models()
+
+# القائمة الجانبية (Creative Side Menu)
+with st.sidebar:
+    selected = option_menu("نظام التصنيف الذكي", ["تصنيف بلاغ", "لوحة القيادة (Dashboard)"], 
+                           icons=['robot', 'graph-up-arrow'], menu_icon="cast", default_index=0)
+
+if selected == "تصنيف بلاغ":
+    st.title("🏛️ منصة تصنيف البلاغات")
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+        user_input = st.text_area("أدخل تفاصيل البلاغ:", height=150, placeholder="مثلاً: هناك تراكم للنفايات في حي...")
+        if st.button("🚀 تحليل البلاغ"):
+            if user_input:
+                vec = vectorizer.transform([re.sub(r'[^\w\s]', ' ', user_input)])
+                pred = model.predict(vec)
+                cat = label_encoder.inverse_transform(pred)[0]
+                st.success(f"### التصنيف: {cat}")
+            else:
+                st.warning("يرجى إدخال النص!")
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col2:
+        st.info("💡 **نصيحة:**\nتأكد من إدخال بلاغ واضح للحصول على تصنيف دقيق.")
+
+else:
+    st.title("📊 لوحة التحليلات الإبداعية")
+    # محاكاة لداشبورد احترافي
+    df_demo = pd.DataFrame({'التصنيف': ['نظافة', 'إنارة', 'طرق', 'مياه'], 'العدد': [45, 20, 35, 15]})
+    
+    # رسم بياني تفاعلي من Plotly
+    fig = px.pie(df_demo, values='العدد', names='التصنيف', hole=0.4, color_discrete_sequence=px.colors.sequential.RdBu)
+    fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
+    st.plotly_chart(fig, use_container_width=True)
