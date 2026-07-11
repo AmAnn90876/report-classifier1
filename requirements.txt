@@ -1,7 +1,8 @@
 streamlit
+streamlit-option-menu
 pandas
+joblib
 scikit-learn
 nltk
 matplotlib
 seaborn
-joblib
