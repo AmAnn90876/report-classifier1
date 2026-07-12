@@ -33,7 +33,7 @@ def get_prediction(text):
     return model.predict([text])[0]
 
 # 3. واجهة المستخدم
-st.title("🛡️ GHARS - منصة تصنيف البلاغات الذكية")
+st.title("🛡️منصة تصنيف البلاغات الذكية")
 
 # القائمة الأفقية
 selected = option_menu(
