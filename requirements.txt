@@ -1,7 +1,9 @@
 streamlit
 streamlit-option-menu
-pandas
-joblib
-scikit-learn
-nltk
+streamlit-elements
+streamlit-extras
+streamlit-lottie
 plotly
+pandas
+scikit-learn
+joblib
