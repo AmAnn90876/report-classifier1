@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # إعداد الصفحة
-st.set_page_config(page_title="GHARS - منصة ذكية", layout="wide")
+st.set_page_config(page_title=" تصنيف البلاغات", layout="wide")
 
 # تهيئة الذاكرة
 if 'reports' not in st.session_state:
