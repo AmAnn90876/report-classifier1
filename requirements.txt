@@ -1,4 +1,7 @@
 streamlit
 pandas
-transformers
-torch
+scikit-learn
+nltk
+matplotlib
+seaborn
+joblib
