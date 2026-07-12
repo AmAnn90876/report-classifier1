@@ -3,58 +3,56 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
-import plotly.express as px
+from streamlit_option_menu import option_menu
 
-# 1. إعداد الصفحة وتصميم احترافي
-st.set_page_config(page_title="نظام تصنيف البلاغات", layout="wide")
+# إعداد الصفحة
+st.set_page_config(page_title="منصة بلاغات ذكية", layout="wide", page_icon="🚀")
+
+# تصميم CSS لعرض "كرتيف" وعصري
 st.markdown("""
     <style>
-    .stApp {background-color: #f4f7f6;}
-    .report-card {background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
-    h1 {color: #1e3d59; text-align: center; font-weight: 700;}
+    .stApp {background-color: #f0f2f6;}
+    .css-1r6slp0 {padding: 2rem 1rem;}
+    .block-container {background-color: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);}
+    .stButton>button {width: 100%; border-radius: 10px; height: 3em; background: #2563eb; color: white; font-weight: bold;}
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# 2. القاموس الفعلي الخاص بك
-category_map = {
-    0: "إنارة", 1: "الإنارة", 2: "التشوه البصري", 3: "الحدائق", 4: "الصيانة",
-    5: "الطرق", 6: "المرور", 7: "النظافة", 8: "تشوه بصري", 9: "تصريف الأمطار",
-    10: "حدائق", 11: "حفريات", 12: "طرق", 13: "مبانٍ قابلة للسقوط", 14: "نظافة"
+# 1. تدريب النموذج الذكي (الخلفية)
+data = {
+    "text": ["نظافة", "نفايات", "زبالة", "قمامة", "روائح", "مياه", "تسريب", "ماسورة", "انفجار", "إنارة", "لمبة", "ظلام", "طرق", "حفرة", "أسفلت", "مطبات"],
+    "label": ["نظافة", "نظافة", "نظافة", "نظافة", "نظافة", "مياه", "مياه", "مياه", "مياه", "إنارة", "إنارة", "إنارة", "طرق", "طرق", "طرق", "طرق"]
 }
-
-# 3. إدارة الذاكرة
-if 'data' not in st.session_state:
-    st.session_state.data = pd.DataFrame(columns=['البلاغ', 'التصنيف'])
-
-# 4. تدريب النموذج (النموذج يتعلم الأرقام ليتطابق مع الـ LabelEncoder)
-# ملاحظة: في مشروعك الأصلي، تأكدي أن الـ model.fit استخدم الأرقام (0-14)
-training_data = [("لمبة طافي", 0), ("إنارة معطلة", 1), ("تشوه بصر", 2), ("حفرة", 12), ("نظافة", 14)]
-X, y = [d[0] for d in training_data], [d[1] for d in training_data]
 model = Pipeline([('tfidf', TfidfVectorizer()), ('clf', LinearSVC())])
-model.fit(X, y)
+model.fit(data['text'], data['label'])
 
-# 5. الواجهة الإبداعية
-st.title("🛡️ نظام تصنيف البلاغات الذكي")
-col1, col2 = st.columns([1, 1])
+# 2. القائمة الجانبية (شكل عصري)
+with st.sidebar:
+    selected = option_menu("القائمة الرئيسية", ["إرسال بلاغ", "إحصائيات"], icons=['pencil-square', 'bar-chart'], menu_icon="cast")
 
-with col1:
-    st.markdown('<div class="report-card">', unsafe_allow_html=True)
-    st.subheader("إرسال بلاغ")
-    user_input = st.text_area("أدخلي تفاصيل البلاغ:", height=120)
-    if st.button("تصنيف البلاغ"):
+# 3. واجهة إرسال البلاغ
+if selected == "إرسال بلاغ":
+    st.markdown("## 📋 تقديم بلاغ جديد")
+    st.write("الرجاء اختيار القسم وتعبئة التفاصيل أدناه:")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        # اختيار القسم (محاكاة لاقتراح المستخدم)
+        category_choice = st.selectbox("اقتراح صنف البلاغ:", ["نظافة", "مياه", "إنارة", "طرق"])
+    
+    with col2:
+        user_input = st.text_area("تفاصيل البلاغ:", height=100, placeholder="مثال: هناك تسريب مياه في شارع...")
+    
+    if st.button("🚀 تحليل وإرسال البلاغ"):
         if user_input:
-            pred_index = model.predict([user_input])[0]
-            label_name = category_map.get(pred_index, "غير معروف")
-            st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame({'البلاغ': [user_input], 'التصنيف': [label_name]})], ignore_index=True)
-            st.success(f"تم تصنيف البلاغ إلى: {label_name}")
-    st.markdown('</div>', unsafe_allow_html=True)
+            prediction = model.predict([user_input])[0]
+            st.success(f"### تم التحليل بنجاح!")
+            st.info(f"القسم المقترح من النظام: **{prediction}**")
+            st.write(f"ملاحظة: لقد قمت باقتراح قسم: **{category_choice}**")
+        else:
+            st.warning("يرجى كتابة نص البلاغ!")
 
-with col2:
-    st.markdown('<div class="report-card">', unsafe_allow_html=True)
-    st.subheader("تحليلات البلاغات")
-    if not st.session_state.data.empty:
-        fig = px.pie(st.session_state.data, names='التصنيف', title="توزيع البلاغات")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("لا توجد بلاغات لعرض الإحصائيات.")
-    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    st.title("📊 لوحة الإحصائيات")
+    st.write("هنا ستظهر إحصائيات البلاغات الواردة (قيد التطوير).")
