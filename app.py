@@ -5,33 +5,7 @@ from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
 from streamlit_option_menu import option_menu
 import plotly.express as px
-@st.cache_resource
-def train_model():
 
-    data = pd.read_excel("Reports_Dataset.xlsx")
-
-    X = data["complaint"]
-    y = data["category"]
-
-    model = Pipeline([
-        (
-            "tfidf",
-            TfidfVectorizer(
-                ngram_range=(1,2)
-            )
-        ),
-        (
-            "svm",
-            LinearSVC()
-        )
-    ])
-
-    model.fit(X, y)
-
-    return model
-
-
-model = train_model()
 st.set_page_config(
     page_title="نظام تصنيف البلاغات الذكي",
     page_icon="🏛️",
@@ -55,75 +29,79 @@ visibility:hidden;
 }
 
 .stApp{
-background-color:#F4F6F8;
+background:#F5F7F8;
 }
 
 .block-container{
-max-width:1100px;
-padding-top:1.5rem;
-padding-bottom:2rem;
-}
-
-html, body, [class*="css"]{
-font-family: "Segoe UI", sans-serif;
+padding-top:1rem;
+padding-bottom:1rem;
+max-width:1200px;
 }
 
 .hero{
-background:#006C35;
-padding:35px;
+background:linear-gradient(90deg,#006C35,#008C4A);
+padding:30px;
 border-radius:18px;
 color:white;
 text-align:center;
-margin-bottom:30px;
+margin-bottom:25px;
+box-shadow:0px 8px 20px rgba(0,0,0,.15);
 }
 
 .hero h1{
-margin:0;
-font-size:36px;
+font-size:40px;
+margin-bottom:8px;
 }
 
 .hero p{
-margin-top:10px;
 font-size:18px;
 opacity:.95;
 }
 
-.section{
+.card{
 background:white;
 padding:25px;
-border-radius:15px;
-box-shadow:0 4px 15px rgba(0,0,0,.08);
+border-radius:18px;
+box-shadow:0 5px 20px rgba(0,0,0,.08);
 margin-bottom:20px;
 }
 
-.stTextArea textarea{
-border-radius:12px;
-font-size:16px;
-}
-
 .stButton>button{
-width:100%;
-height:52px;
-border:none;
-border-radius:10px;
 background:#006C35;
 color:white;
+border:none;
+border-radius:10px;
+height:52px;
 font-size:18px;
 font-weight:bold;
+width:100%;
 transition:.3s;
 }
 
 .stButton>button:hover{
-background:#0B7A43;
+background:#008C4A;
+transform:scale(1.02);
+}
+
+textarea{
+border-radius:12px !important;
+}
+
+.metric-card{
+background:white;
+padding:18px;
+border-radius:15px;
+text-align:center;
+box-shadow:0 5px 15px rgba(0,0,0,.08);
 }
 
 .result{
-background:#EEF8F2;
+background:#EAF7EF;
+border-right:8px solid #006C35;
 padding:20px;
-border-right:6px solid #006C35;
-border-radius:12px;
-font-size:20px;
-margin-top:20px;
+border-radius:15px;
+font-size:22px;
+font-weight:bold;
 }
 
 </style>
@@ -132,217 +110,176 @@ margin-top:20px;
 st.markdown("""
 <div class="hero">
 
-<h1>🏛️ نظام تصنيف البلاغات الذكي</h1>
+<h1>🏛️ وزارة البلديات والإسكان</h1>
+
+<h2>نظام تصنيف البلاغات الذكي</h2>
 
 <p>
-تحليل البلاغات البلدية وتصنيفها تلقائياً باستخدام الذكاء الاصطناعي
+يقوم النظام بتحليل البلاغات وتصنيفها تلقائياً باستخدام الذكاء الاصطناعي
 </p>
 
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="section">
+if 'reports' not in st.session_state:
+    st.session_state.reports = pd.DataFrame(
+        columns=['القسم','التفاصيل']
+    )
 
-<h3>📝 تفاصيل البلاغ</h3>
+training_data = [
+("نفايات متراكمة حاويات زبالة روائح مخلفات تنظيف","نظافة"),
+("تسرب مياه كسر ماسورة انفجار تجمع مياه طفح","مياه"),
+("الإنارة معطلة الشارع مظلم عمود النور طافي ظلام","إنارة"),
+("حفرة طريق هبوط أسفلت تشققات رصيف مطبات","طرق")
+]
 
-</div>
-""", unsafe_allow_html=True)
+df = pd.DataFrame(training_data,columns=['text','label'])
 
+model = Pipeline([
+('tfidf',TfidfVectorizer()),
+('clf',LinearSVC())
+])
 
-complaint_text = st.text_area(
-    "اكتب وصف البلاغ هنا:",
-    placeholder="مثال: يوجد حفريات في الشارع الرئيسي تسبب خطراً على المارة...",
-    height=150
+model.fit(df['text'],df['label'])
+
+selected = option_menu(
+    None,
+    ["📝 إرسال بلاغ", "📊 لوحة الإحصائيات"],
+    icons=["clipboard2-check", "bar-chart-fill"],
+    orientation="horizontal",
+    default_index=0,
 )
 
+if selected == "📝 إرسال بلاغ":
 
-st.markdown("""
-<div class="section">
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-<h3>📷 صورة البلاغ (اختياري)</h3>
+    st.subheader("📝 تقديم بلاغ جديد")
 
-</div>
-""", unsafe_allow_html=True)
+    st.write("يرجى كتابة تفاصيل البلاغ وسيقوم النظام بتحليله وتصنيفه تلقائياً.")
 
+    user_input = st.text_area(
+        "",
+        height=180,
+        placeholder="مثال: يوجد حفرة كبيرة في شارع الملك عبدالله تسبب خطراً على المركبات..."
+    )
 
-uploaded_image = st.file_uploader(
-    "ارفع صورة توضح المشكلة:",
-    type=["png", "jpg", "jpeg"]
-)
+    if st.button("🚀 تحليل البلاغ"):
 
+        if user_input.strip() == "":
+            st.warning("⚠️ يرجى كتابة تفاصيل البلاغ أولاً.")
 
-st.markdown("""
-<div class="section">
+        else:
 
-<h3>📍 موقع البلاغ (اختياري)</h3>
+            with st.spinner("جاري تحليل البلاغ بواسطة الذكاء الاصطناعي..."):
 
-</div>
-""", unsafe_allow_html=True)
+                pred = model.predict([user_input])[0]
 
+                new_report = pd.DataFrame(
+                    {
+                        "القسم":[pred],
+                        "التفاصيل":[user_input]
+                    }
+                )
 
-location = st.text_input(
-    "أدخل موقع البلاغ:",
-    placeholder="مثال: حي السلام، شارع الملك عبدالعزيز"
-)
+                st.session_state.reports = pd.concat(
+                    [st.session_state.reports,new_report],
+                    ignore_index=True
+                )
 
+            st.markdown(
+                f"""
+                <div class="result">
 
-st.markdown("<br>", unsafe_allow_html=True)
+                ✅ تم استلام البلاغ بنجاح
 
+                <br><br>
 
-analyze_button = st.button(
-    "🚀 تحليل البلاغ"
-)
+                📂 <b>التصنيف المتوقع:</b> {pred}
 
-if analyze_button:
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-    if complaint_text.strip() == "":
-        st.warning("⚠️ الرجاء كتابة وصف البلاغ أولاً.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+elif selected == "📊 لوحة الإحصائيات":
+
+    st.subheader("📊 لوحة مؤشرات الأداء")
+
+    if not st.session_state.reports.empty:
+
+        stats = (
+            st.session_state.reports["القسم"]
+            .value_counts()
+            .reset_index()
+        )
+
+        stats.columns = ["القسم","العدد"]
+
+        total_reports = len(st.session_state.reports)
+
+        most_category = stats.iloc[0]["القسم"]
+
+        categories = len(stats)
+
+        c1,c2,c3 = st.columns(3)
+
+        with c1:
+            st.metric(
+                "📋 إجمالي البلاغات",
+                total_reports
+            )
+
+        with c2:
+            st.metric(
+                "🏛️ أكثر تصنيف",
+                most_category
+            )
+
+        with c3:
+            st.metric(
+                "📂 عدد الأقسام",
+                categories
+            )
+
+        st.divider()
+
+        fig = px.bar(
+            stats,
+            x="القسم",
+            y="العدد",
+            color="القسم",
+            text="العدد",
+            height=450
+        )
+
+        fig.update_layout(
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            showlegend=False,
+            title="توزيع البلاغات حسب القسم",
+            title_x=0.5
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        st.subheader("📄 سجل البلاغات")
+
+        st.dataframe(
+            st.session_state.reports,
+            use_container_width=True,
+            hide_index=True
+        )
 
     else:
 
-        prediction = model.predict([complaint_text])[0]
+        st.info(
+            "لا توجد بلاغات حتى الآن."
+        )
 
-        st.markdown(f"""
-        <div class="result">
-
-        ✅ نوع البلاغ المتوقع:
-        <br><br>
-
-        <b>{prediction}</b>
-
-        </div>
-        """, unsafe_allow_html=True)
-
-
-        if uploaded_image is not None:
-
-            st.markdown("""
-            <div class="section">
-
-            <h3>📷 الصورة المرفوعة</h3>
-
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.image(
-                uploaded_image,
-                width=400
-            )
-
-
-        if location.strip() != "":
-
-            st.markdown(f"""
-            <div class="section">
-
-            📍 موقع البلاغ:
-            <br><br>
-
-            <b>{location}</b>
-
-            </div>
-            """, unsafe_allow_html=True)
-st.markdown("""
-<div class="section">
-
-<h3>📊 إحصائيات البلاغات</h3>
-
-</div>
-""", unsafe_allow_html=True)
-
-
-@st.cache_data
-def load_data():
-
-    return pd.read_excel("Reports_Dataset.xlsx")
-
-
-df = load_data()
-
-
-category_count = (
-    df["category"]
-    .value_counts()
-    .reset_index()
-)
-
-category_count.columns = [
-    "Category",
-    "Count"
-]
-
-
-fig = px.bar(
-    category_count,
-    x="Category",
-    y="Count",
-    text="Count",
-    title="عدد البلاغات حسب التصنيف"
-)
-
-
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
-
-priority_map = {
-    "حفريات": "عالية",
-    "مبانٍ آيلة للسقوط": "عالية",
-    "إنارة": "متوسطة",
-    "طرق": "متوسطة",
-    "نظافة": "متوسطة",
-    "تشوه بصري": "منخفضة",
-    "حدائق": "منخفضة"
-}
-
-
-department_map = {
-    "حفريات": "إدارة الطرق",
-    "مبانٍ آيلة للسقوط": "قسم السلامة",
-    "إنارة": "إدارة الإنارة",
-    "طرق": "إدارة الطرق",
-    "نظافة": "إدارة النظافة",
-    "تشوه بصري": "قسم الرقابة",
-    "حدائق": "إدارة الحدائق"
-}
-
-
-if analyze_button and complaint_text.strip():
-
-    prediction = model.predict([complaint_text])[0]
-
-    priority = priority_map.get(
-        prediction,
-        "غير محددة"
-    )
-
-    department = department_map.get(
-        prediction,
-        "غير محدد"
-    )
-
-
-    st.markdown(f"""
-    <div class="result">
-
-    ✅ تصنيف البلاغ:
-    <br>
-    <b>{prediction}</b>
-
-    <br><br>
-
-    ⚡ الأولوية:
-    <br>
-    <b>{priority}</b>
-
-    <br><br>
-
-    🏢 الجهة المسؤولة:
-    <br>
-    <b>{department}</b>
-
-    </div>
-    """, unsafe_allow_html=True)
 
