@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # 1. إعدادات الصفحة (يجب أن يكون أول أمر في Streamlit)
-st.set_page_config(page_title="GHARS - منصة بلاغات", layout="wide")
+st.set_page_config(page_title=" منصة البلاغات", layout="wide")
 
 # 2. تهيئة الذاكرة (لضمان بقاء البيانات عند التنقل)
 if 'reports' not in st.session_state:
