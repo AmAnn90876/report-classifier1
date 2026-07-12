@@ -1,7 +1,5 @@
 streamlit
 pandas
 scikit-learn
-nltk
-matplotlib
-seaborn
-joblib
+plotly
+streamlit-option-menu
