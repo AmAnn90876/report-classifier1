@@ -32,7 +32,6 @@ elif page == "إرسال بلاغ":
             new_data = pd.DataFrame({'القسم': [cat], 'التفاصيل': [user_input]})
             st.session_state.reports = pd.concat([st.session_state.reports, new_data], ignore_index=True)
             st.success(f"تم الإرسال إلى: {cat}")
-
 elif page == "لوحة الإحصائيات":
     st.header("📊 لوحة مؤشرات الأداء")
     if not st.session_state.reports.empty:
